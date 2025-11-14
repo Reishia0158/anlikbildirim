@@ -1,0 +1,37 @@
+name: Mail Check
+
+on:
+  schedule:
+    - cron: '* * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-mail:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Check for new mails
+        env:
+          IMAP_HOST: ${{ secrets.IMAP_HOST }}
+          IMAP_PORT: ${{ secrets.IMAP_PORT }}
+          IMAP_USER: ${{ secrets.IMAP_USER }}
+          IMAP_PASS: ${{ secrets.IMAP_PASS }}
+          TOPIC_URL: ${{ secrets.TOPIC_URL }}
+        run: |
+          python3 check_mail.py
+      
+      - name: Commit last_uid.txt if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add last_uid.txt
+          git diff --staged --quiet || git commit -m "Update last UID [skip ci]"
+          git push || echo "No changes to push"
